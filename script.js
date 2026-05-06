@@ -1,4 +1,3 @@
-// --- 1. VARIABLES GLOBALES Y ELEMENTOS ---
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const botonFoto = document.getElementById('boton-foto');
@@ -8,15 +7,12 @@ const buscador = document.getElementById('buscador');
 
 let fotoCapturada = null;
 
-// Cargar álbum desde la memoria del celular (LocalStorage)
-// Si no hay nada, empieza con una lista vacía []
+
 let album = JSON.parse(localStorage.getItem('miAlbumEstampas')) || [];
 
-// --- 2. INICIALIZACIÓN ---
-// Mostrar las estampas que ya estaban guardadas al abrir la app
 actualizarAlbum();
 
-// Encender la cámara
+
 navigator.mediaDevices.getUserMedia({
     video: { facingMode: "environment" },
     audio: false
@@ -25,47 +21,41 @@ navigator.mediaDevices.getUserMedia({
         video.srcObject = stream;
     })
     .catch(err => {
-        console.error("Error al acceder a la cámara: ", err);
-        alert("No se pudo acceder a la cámara. Asegúrate de dar permisos.");
+        console.error("Error de cámara: ", err);
+        alert("Revisa los permisos de tu cámara en el navegador.");
     });
 
-// --- 3. FUNCIONES DE CAPTURA ---
+
 botonFoto.addEventListener('click', () => {
     const context = canvas.getContext('2d');
-    // Ajustar el canvas al tamaño del video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    // Dibujar la imagen actual del video en el canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    // Convertir a formato de imagen
+
     fotoCapturada = canvas.toDataURL('image/png');
-    alert("📸 ¡Foto capturada con éxito!");
+    alert("📸 ¡Foto capturada correctamente!");
 });
 
-// --- 4. LÓGICA DE GUARDADO Y REPETIDAS ---
 btnGuardar.addEventListener('click', () => {
     const nombre = document.getElementById('nombre').value.trim().toUpperCase();
     const numero = document.getElementById('numero').value;
     const pais = document.getElementById('pais').value.trim().toUpperCase();
 
-    // Validación: que nada esté vacío
     if (!nombre || !numero || !pais || !fotoCapturada) {
-        alert("¡Hey! Falta algo: llena los datos y tómale foto a la estampa.");
+        alert("Faltan datos o la foto. ¡Asegúrate de llenar todo!");
         return;
     }
 
-    // Crear un identificador único para detectar repetidas
-    const idUnica = `${pais}-${numero}-${nombre}`;
 
-    // Buscar si esa estampa ya existe en nuestro arreglo
+    const idUnica = `${pais}-${numero}-${nombre}`;
     const indiceExistente = album.findIndex(est => est.id === idUnica);
 
     if (indiceExistente !== -1) {
-        // SI YA EXISTE: Sumamos al contador
+
         album[indiceExistente].cantidad++;
-        alert(`¡Repetida! Ahora tienes ${album[indiceExistente].cantidad} de ${nombre}`);
+        alert(`¡Repetida detectada! Ahora tienes ${album[indiceExistente].cantidad} de ${nombre}.`);
     } else {
-        // SI ES NUEVA: Creamos el objeto
+
         const nuevaEstampa = {
             id: idUnica,
             nombre: nombre,
@@ -77,23 +67,20 @@ btnGuardar.addEventListener('click', () => {
         album.push(nuevaEstampa);
     }
 
-    // GUARDADO PERMANENTE: Guardar la lista actualizada en el celular
-    localStorage.setItem('miAlbumEstampas', JSON.stringify(album));
 
-    // Refrescar la vista y limpiar
-    actualizarAlbum();
+    guardarYRefrescar();
     limpiarFormulario();
 });
 
-// --- 5. RENDERIZADO DEL ÁLBUM ---
-function actualizarAlbum() {
-    listaEstampas.innerHTML = ""; // Limpiar visualmente antes de redibujar
 
-    album.forEach(est => {
+function actualizarAlbum() {
+    listaEstampas.innerHTML = "";
+
+    album.forEach((est, index) => {
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-estampa';
 
-        // El badge rojo solo sale si tienes más de 1
+
         const badge = est.cantidad > 1 ? `<div class="contador-badge">${est.cantidad}</div>` : "";
 
         tarjeta.innerHTML = `
@@ -102,30 +89,51 @@ function actualizarAlbum() {
             <div class="info-jugador">
                 <p class="pais-etiqueta">${est.pais} #${est.numero}</p>
                 <p><strong>${est.nombre}</strong></p>
+                <!-- Botón de acción para intercambios -->
+                <button class="btn-quitar" onclick="quitarEstampa(${index})">
+                    ${est.cantidad > 1 ? 'Intercambiar (Quitar 1)' : 'Eliminar Estampa'}
+                </button>
             </div>
         `;
         listaEstampas.appendChild(tarjeta);
     });
 }
 
-// --- 6. BUSCADOR EN TIEMPO REAL ---
+window.quitarEstampa = function (index) {
+    if (album[index].cantidad > 1) {
+
+        album[index].cantidad--;
+    } else {
+
+        const confirmar = confirm("Es tu última estampa de este jugador. ¿Deseas eliminarla por completo?");
+        if (confirmar) {
+            album.splice(index, 1);
+        }
+    }
+    guardarYRefrescar();
+};
+
 buscador.addEventListener('input', (e) => {
-    const busqueda = e.target.value.toLowerCase();
+    const filtro = e.target.value.toLowerCase();
     const tarjetas = document.querySelectorAll('.tarjeta-estampa');
 
     tarjetas.forEach(tarjeta => {
-        // Comprobar si el texto de la tarjeta incluye lo que escribimos
-        const contenido = tarjeta.innerText.toLowerCase();
-        tarjeta.style.display = contenido.includes(busqueda) ? "block" : "none";
+        const texto = tarjeta.innerText.toLowerCase();
+        tarjeta.style.display = texto.includes(filtro) ? "block" : "none";
     });
 });
 
-// --- 7. UTILIDADES ---
+
+function guardarYRefrescar() {
+    localStorage.setItem('miAlbumEstampas', JSON.stringify(album));
+    actualizarAlbum();
+}
+
 function limpiarFormulario() {
     document.getElementById('nombre').value = "";
     document.getElementById('numero').value = "";
     document.getElementById('pais').value = "";
     fotoCapturada = null;
-    // Scroll hacia la colección para ver la nueva estampa
-    listaEstampas.scrollIntoView({ behavior: 'smooth' });
+
+    listaEstampas.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
