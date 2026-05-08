@@ -1,3 +1,4 @@
+
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const botonFoto = document.getElementById('boton-foto');
@@ -7,124 +8,95 @@ const buscador = document.getElementById('buscador');
 
 let fotoCapturada = null;
 
+const PAISES_OFICIALES = [
+    "BRASIL", "ARGENTINA", "MÉXICO", "ESTADOS UNIDOS", "CANADÁ", "COLOMBIA", 
+    "URUGUAY", "CHILE", "PERÚ", "ECUADOR", "PARAGUAY", "BOLIVIA", "ESPAÑA", 
+    "FRANCIA", "ALEMANIA", "ITALIA", "PORTUGAL", "PAÍSES BAJOS", "INGLATERRA", 
+    "BÉLGICA", "SUIZA", "CROACIA", "DINAMARCA", "SUECIA", "SERBIA", "JAPÓN", 
+    "COREA DEL SUR", "IRÁN", "ARABIA SAUDITA", "AUSTRALIA", "NUEVA ZELANDA", 
+    "GHANA", "NIGERIA", "CAMERÚN", "SENEGAL", "MARRUECOS", "TÚNEZ", "COSTA RICA", "COSTA DE MARFIL"
+];
 
 let album = JSON.parse(localStorage.getItem('miAlbumEstampas')) || [];
 
 actualizarAlbum();
 
-
-navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "environment" },
-    audio: false
-})
-    .then(stream => {
-        video.srcObject = stream;
-    })
-    .catch(err => {
-        console.error("Error de cámara: ", err);
-        alert("Revisa los permisos de tu cámara en el navegador.");
-    });
-
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(stream => { video.srcObject = stream; })
+    .catch(err => alert("Activa los permisos de cámara"));
 
 botonFoto.addEventListener('click', () => {
     const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    fotoCapturada = canvas.toDataURL('image/png');
-    alert("📸 ¡Foto capturada correctamente!");
+    canvas.width = 300; 
+    canvas.height = 400;
+    context.drawImage(video, 0, 0, 300, 400);
+    fotoCapturada = canvas.toDataURL('image/jpeg', 0.4); 
+    alert("📸 Foto capturada");
 });
 
 btnGuardar.addEventListener('click', () => {
     const nombre = document.getElementById('nombre').value.trim().toUpperCase();
     const numero = document.getElementById('numero').value;
-    const pais = document.getElementById('pais').value.trim().toUpperCase();
+    const paisInput = document.getElementById('pais').value.trim().toUpperCase();
 
-    if (!nombre || !numero || !pais || !fotoCapturada) {
-        alert("Faltan datos o la foto. ¡Asegúrate de llenar todo!");
+    if (!nombre || !numero || !paisInput || !fotoCapturada) {
+        alert("Completa todos los campos y toma la foto");
         return;
     }
 
+    const idUnica = `${paisInput}-${numero}`;
+    const index = album.findIndex(est => est.id === idUnica);
 
-    const idUnica = `${pais}-${numero}-${nombre}`;
-    const indiceExistente = album.findIndex(est => est.id === idUnica);
-
-    if (indiceExistente !== -1) {
-
-        album[indiceExistente].cantidad++;
-        alert(`¡Repetida detectada! Ahora tienes ${album[indiceExistente].cantidad} de ${nombre}.`);
+    if (index !== -1) {
+        album[index].cantidad++;
     } else {
-
-        const nuevaEstampa = {
-            id: idUnica,
-            nombre: nombre,
-            numero: numero,
-            pais: pais,
-            foto: fotoCapturada,
-            cantidad: 1
-        };
-        album.push(nuevaEstampa);
+        album.push({ id: idUnica, nombre, numero, pais: paisInput, foto: fotoCapturada, cantidad: 1 });
     }
 
-
-    guardarYRefrescar();
+    localStorage.setItem('miAlbumEstampas', JSON.stringify(album));
+    actualizarAlbum();
     limpiarFormulario();
 });
 
-
 function actualizarAlbum() {
     listaEstampas.innerHTML = "";
+    const grupos = {};
+    
+    // Organizar cartas por país
+    album.forEach(est => {
+        if (!grupos[est.pais]) grupos[est.pais] = [];
+        grupos[est.pais].push(est);
+    });
 
-    album.forEach((est, index) => {
-        const tarjeta = document.createElement('div');
-        tarjeta.className = 'tarjeta-estampa';
+    // Mostrar países en orden alfabético
+    Object.keys(grupos).sort().forEach(pais => {
+        const seccion = document.createElement('div');
+        seccion.className = 'seccion-pais';
+        seccion.innerHTML = `<h3>${pais}</h3>`;
+        
+        const grid = document.createElement('div');
+        grid.className = 'grid-estampas';
 
-
-        const badge = est.cantidad > 1 ? `<div class="contador-badge">${est.cantidad}</div>` : "";
-
-        tarjeta.innerHTML = `
-            ${badge}
-            <img src="${est.foto}" alt="Estampa">
-            <div class="info-jugador">
-                <p class="pais-etiqueta">${est.pais} #${est.numero}</p>
-                <p><strong>${est.nombre}</strong></p>
-                <!-- Botón de acción para intercambios -->
-                <button class="btn-quitar" onclick="quitarEstampa(${index})">
-                    ${est.cantidad > 1 ? 'Intercambiar (Quitar 1)' : 'Eliminar Estampa'}
-                </button>
-            </div>
-        `;
-        listaEstampas.appendChild(tarjeta);
+        grupos[pais].sort((a,b) => a.numero - b.numero).forEach(est => {
+            const card = document.createElement('div');
+            card.className = 'tarjeta-estampa';
+            card.innerHTML = `
+                ${est.cantidad > 1 ? `<div class="contador-badge">${est.cantidad}</div>` : ""}
+                <img src="${est.foto}">
+                <p>#${est.numero} <b>${est.nombre}</b></p>
+                <button class="btn-quitar" onclick="eliminar('${est.id}')">Quitar</button>
+            `;
+            grid.appendChild(card);
+        });
+        seccion.appendChild(grid);
+        listaEstampas.appendChild(seccion);
     });
 }
 
-window.quitarEstampa = function (index) {
-    if (album[index].cantidad > 1) {
-
-        album[index].cantidad--;
-    } else {
-
-        const confirmar = confirm("Es tu última estampa de este jugador. ¿Deseas eliminarla por completo?");
-        if (confirmar) {
-            album.splice(index, 1);
-        }
-    }
-    guardarYRefrescar();
-};
-
-buscador.addEventListener('input', (e) => {
-    const filtro = e.target.value.toLowerCase();
-    const tarjetas = document.querySelectorAll('.tarjeta-estampa');
-
-    tarjetas.forEach(tarjeta => {
-        const texto = tarjeta.innerText.toLowerCase();
-        tarjeta.style.display = texto.includes(filtro) ? "block" : "none";
-    });
-});
-
-
-function guardarYRefrescar() {
+window.eliminar = function(id) {
+    const index = album.findIndex(e => e.id === id);
+    if(album[index].cantidad > 1) album[index].cantidad--;
+    else album.splice(index, 1);
     localStorage.setItem('miAlbumEstampas', JSON.stringify(album));
     actualizarAlbum();
 }
@@ -134,6 +106,11 @@ function limpiarFormulario() {
     document.getElementById('numero').value = "";
     document.getElementById('pais').value = "";
     fotoCapturada = null;
-
-    listaEstampas.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+buscador.addEventListener('input', (e) => {
+    const filtro = e.target.value.toLowerCase();
+    document.querySelectorAll('.seccion-pais').forEach(s => {
+        s.style.display = s.innerText.toLowerCase().includes(filtro) ? "block" : "none";
+    });
+});
