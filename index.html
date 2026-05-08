@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html lang="enS">
-
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CARTAS DEL MUNDIAL</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
     <header>
-        <h1>Albun del mundial</h1>
-        <input type="text" id="buscador" placeholder="busca por nombre, pais o numero...">
+        <h1>Álbum del Mundial</h1>
+        <input type="text" id="buscador" placeholder="Busca por nombre, país o número...">
     </header>
 
     <main>
         <section id="agregar-estampa">
-            <h2>Agregar Nueva</h2>
+            <h2>Agregar Nueva Estampa</h2>
             <div id="contenedor-camara">
                 <video id="video" autoplay playsinline></video>
                 <button id="boton-foto">Tomar Foto</button>
@@ -25,18 +23,20 @@
 
             <div class="inputs">
                 <input type="text" id="nombre" placeholder="Nombre del jugador">
-                <input type="number" id="numero" placeholder="numero">
-                <input type="text" id="pais" placeholder="pais">
-                <button id="btn-guardar">Guardar en el album</button>
+                <input type="number" id="numero" placeholder="Número de estampa">
+                <input type="text" id="pais" placeholder="País (Ej: México, Brasil...)">
+                <button id="btn-guardar">Guardar en el Álbum</button>
             </div>
         </section>
+
         <hr>
+
         <section id="contenedor-album">
-            <h2>Mi Coleccion</h2>
+            <h2>Mi Colección por Países</h2>
             <div id="lista-estampas"></div>
         </section>
     </main>
-    <script src="script.js"></script>
+
     <footer>
         <div class="redes-sociales">
             <p>Sígueme en mis redes:</p>
@@ -51,6 +51,7 @@
             <p>¡Colecciona, intercambia y gana! ⚽</p>
         </div>
     </footer>
-</body>
 
+    <script src="script.js"></script>
+</body>
 </html>
